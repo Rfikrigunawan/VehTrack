@@ -1,0 +1,835 @@
+#!/usr/bin/env python3
+"""
+Vehicle Tracker — Telegram Bot
+================================
+Fitur:
+  - Link akun via /link <token>
+  - Quick view /status, /reminders
+  - Daily reminder cron jam 08:00 WIB
+  - Mini App (WebApp) menu button + inline button
+  - Command /unlink, /help, /ping
+
+Jalankan:
+    python bot.py
+"""
+
+import os
+import time
+import logging
+from datetime import datetime, time as dt_time, timezone, timedelta
+
+import requests
+from dotenv import load_dotenv
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    MenuButtonWebApp,
+    WebAppInfo,
+    BotCommand,
+)
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+
+# ==================================================================== #
+# Config & Env
+# ==================================================================== #
+import logging.handlers
+from pathlib import Path
+
+load_dotenv()
+
+# ---------- Logging: Console + File (rotating) ---------- #
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+LOG_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+
+# Root logger
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.INFO)
+
+# Hapus handler lama
+for h in root_logger.handlers[:]:
+    root_logger.removeHandler(h)
+
+# Formatter
+formatter = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATE_FMT)
+
+# Handler 1: Console
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+console_handler.setLevel(logging.INFO)
+root_logger.addHandler(console_handler)
+
+# Handler 2: File rotasi — bot.log
+file_handler = logging.handlers.RotatingFileHandler(
+    LOG_DIR / "bot.log",
+    maxBytes=5 * 1024 * 1024,   # 5 MB
+    backupCount=5,
+    encoding="utf-8",
+)
+file_handler.setFormatter(formatter)
+file_handler.setLevel(logging.INFO)
+root_logger.addHandler(file_handler)
+
+# Kurangi noise dari library eksternal (httpx, telegram, dll)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("telegram.ext.Application").setLevel(logging.INFO)
+logging.getLogger("telegram.Bot").setLevel(logging.INFO)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+
+# Logger untuk modul ini
+log = logging.getLogger("vt-bot")
+
+PB_URL = os.getenv("PB_URL", "https://acer-pb.gwan.my.id").rstrip("/")
+PB_ADMIN_EMAIL = os.getenv("PB_ADMIN_EMAIL", "")
+PB_ADMIN_PASSWORD = os.getenv("PB_ADMIN_PASSWORD", "")
+
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "").lstrip("@")
+WEBAPP_URL = os.getenv("WEBAPP_URL", "").rstrip("/")
+
+TOKEN_MAX_AGE_SEC = 5 * 60            # Link token valid 5 menit
+WIB = timezone(timedelta(hours=7))    # GMT+7
+DAILY_HOUR_WIB = 8                    # Jam 8 pagi WIB
+
+
+# ==================================================================== #
+# Validasi env
+# ==================================================================== #
+if not BOT_TOKEN:
+    raise SystemExit("❌ TELEGRAM_BOT_TOKEN belum di-set di .env")
+
+if not PB_ADMIN_EMAIL or not PB_ADMIN_PASSWORD:
+    raise SystemExit("❌ PB_ADMIN_EMAIL / PB_ADMIN_PASSWORD belum di-set di .env")
+
+if not WEBAPP_URL:
+    log.warning("⚠️  WEBAPP_URL belum di-set — Mini App menu button tidak akan muncul")
+
+
+# ==================================================================== #
+# PocketBase Admin Client
+# ==================================================================== #
+class AdminPB:
+    """Client PocketBase dengan superuser token."""
+
+    def __init__(self, url: str, email: str, password: str):
+        self.url = url.rstrip("/")
+        self.email = email
+        self.password = password
+        self.token = None
+        self._login()
+
+    def _login(self):
+        try:
+            r = requests.post(
+                f"{self.url}/api/collections/_superusers/auth-with-password",
+                json={"identity": self.email, "password": self.password},
+                timeout=20,
+            )
+            r.raise_for_status()
+            self.token = r.json()["token"]
+            log.info("✅ Admin PB login OK")
+        except requests.RequestException as e:
+            log.error("❌ Admin PB login gagal: %s", e)
+            raise
+
+    def _headers(self) -> dict:
+        return {"Authorization": f"Bearer {self.token}"}
+
+    def _request(self, method: str, path: str, **kwargs):
+        url = f"{self.url}{path}"
+        for attempt in range(3):
+            try:
+                r = requests.request(
+                    method, url,
+                    headers=self._headers(),
+                    timeout=(10, 30),
+                    **kwargs,
+                )
+                if r.status_code == 401:
+                    log.warning("Token expired, re-login...")
+                    self._login()
+                    continue
+                r.raise_for_status()
+                return r.json() if r.content else None
+            except requests.RequestException as e:
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                log.error("Request error after retries: %s", e)
+                raise
+
+    def list(self, collection: str, **params):
+        return self._request("GET", f"/api/collections/{collection}/records", params=params)
+
+    def get(self, collection: str, rid: str):
+        return self._request("GET", f"/api/collections/{collection}/records/{rid}")
+
+    def update(self, collection: str, rid: str, data: dict):
+        return self._request("PATCH", f"/api/collections/{collection}/records/{rid}", json=data)
+
+
+pb = AdminPB(PB_URL, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD)
+
+
+# ==================================================================== #
+# Helpers
+# ==================================================================== #
+def is_token_fresh(token: str, max_age_sec: int = TOKEN_MAX_AGE_SEC) -> bool:
+    """Cek token masih fresh (berdasarkan unix timestamp di awal token)."""
+    try:
+        ts_str, _ = token.split(".", 1)
+        return (time.time() - int(ts_str)) < max_age_sec
+    except (ValueError, AttributeError):
+        return False
+
+
+def find_user_by_link_token(token: str):
+    """Cari user dengan telegram_link_token = token."""
+    try:
+        res = pb.list("users", filter=f'telegram_link_token="{token}"', perPage=1)
+        items = res.get("items", [])
+        return items[0] if items else None
+    except Exception as e:
+        log.error("find_user_by_link_token error: %s", e)
+        return None
+
+
+def find_user_by_telegram_id(tg_id: int):
+    """Cari user dengan telegram_id = tg_id."""
+    try:
+        res = pb.list("users", filter=f'telegram_id="{tg_id}"', perPage=1)
+        items = res.get("items", [])
+        return items[0] if items else None
+    except Exception as e:
+        log.error("find_user_by_telegram_id error: %s", e)
+        return None
+
+
+def fmt_date(date_str: str) -> str:
+    """Format tanggal ISO ke format Indonesia singkat."""
+    if not date_str:
+        return "-"
+    try:
+        # Handle format "2026-09-22 00:00:00.000Z" atau "2026-09-22"
+        s = date_str.replace("Z", "+00:00")
+        if "." in s and "+" not in s:
+            s = s.split(".")[0]
+        d = datetime.fromisoformat(s.replace(" ", "T"))
+        # Convert ke WIB
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        d_wib = d.astimezone(WIB)
+        bulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+                 "Jul", "Ags", "Sep", "Okt", "Nov", "Des"]
+        return f"{d_wib.day} {bulan[d_wib.month - 1]} {d_wib.year}"
+    except (ValueError, AttributeError):
+        return date_str[:10] if date_str else "-"
+
+
+def days_until(date_str: str):
+    """Hitung selisih hari dari hari ini (WIB) ke target date."""
+    if not date_str:
+        return None
+    try:
+        s = date_str.replace("Z", "+00:00")
+        if "." in s and "+" not in s:
+            s = s.split(".")[0]
+        d = datetime.fromisoformat(s.replace(" ", "T"))
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=timezone.utc)
+        d_wib = d.astimezone(WIB).date()
+        now_wib = datetime.now(WIB).date()
+        return (d_wib - now_wib).days
+    except (ValueError, AttributeError):
+        return None
+
+
+# ==================================================================== #
+# Bot lifecycle — Set menu button & commands
+# ==================================================================== #
+async def post_init(application: Application):
+    """Dipanggil setelah bot start. Set menu button & command list."""
+
+    # 1. Set command list
+    try:
+        await application.bot.set_my_commands([
+            BotCommand("start", "Sapaan & menu"),
+            BotCommand("status", "Status kendaraan"),
+            BotCommand("reminders", "Daftar pengingat aktif"),
+            BotCommand("link", "Link akun (dengan token)"),
+            BotCommand("unlink", "Putuskan tautan Telegram"),
+            BotCommand("help", "Bantuan"),
+        ])
+        log.info("✅ Commands list di-set")
+    except Exception as e:
+        log.error("Gagal set commands: %s", e)
+
+    # 2. Set menu button (Mini App)
+    if WEBAPP_URL:
+        try:
+            await application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Buka App",
+                    web_app=WebAppInfo(url=WEBAPP_URL),
+                )
+            )
+            log.info("✅ Menu button Mini App di-set → %s", WEBAPP_URL)
+        except Exception as e:
+            log.error("Gagal set menu button: %s", e)
+    else:
+        log.warning("⚠️  WEBAPP_URL kosong — menu button tidak di-set")
+
+
+# ==================================================================== #
+# Helper — Keyboard builders
+# ==================================================================== #
+def webapp_inline_keyboard() -> InlineKeyboardMarkup | None:
+    """Inline keyboard dengan tombol Mini App."""
+    if not WEBAPP_URL:
+        return None
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            "🚗 Buka Vehicle Tracker",
+            web_app=WebAppInfo(url=WEBAPP_URL),
+        )
+    ]])
+
+
+# ==================================================================== #
+# /start
+# ==================================================================== #
+async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    msg = update.effective_message
+    user = update.effective_user
+    if not msg or not user:
+        return
+
+    existing = find_user_by_telegram_id(user.id)
+    kb = webapp_inline_keyboard()
+
+    if existing:
+        text = (
+            f"👋 Halo *{existing.get('name', 'user')}*!\n\n"
+            f"Akun Telegram Anda sudah ter-link dengan Vehicle Tracker.\n\n"
+            f"*Akses Cepat:*\n"
+            f"• Tap tombol di bawah untuk buka Mini App\n"
+            f"• /status — status semua kendaraan\n"
+            f"• /reminders — daftar pengingat aktif\n"
+            f"• /unlink — putuskan tautan\n"
+            f"• /help — bantuan"
+        )
+    else:
+        text = (
+            "🚗 *Vehicle Tracker Bot*\n\n"
+            "Bot ini terhubung dengan aplikasi *Vehicle Tracker* "
+            "untuk manajemen kendaraan Anda.\n\n"
+            "*Cara Link Akun:*\n"
+            "1. Buka web app Vehicle Tracker\n"
+            "2. Login → Pengaturan → Link Telegram\n"
+            "3. Copy token yang muncul\n"
+            "4. Kirim ke bot ini:\n"
+            "   `/link <token>`\n\n"
+            "Setelah ter-link, Anda bisa buka Mini App dari tombol di bawah 👇"
+        )
+
+    await msg.reply_text(text, parse_mode="Markdown", reply_markup=kb)
+
+
+# ==================================================================== #
+# /help
+# ==================================================================== #
+async def cmd_help(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "🚗 *Vehicle Tracker Bot — Bantuan*\n\n"
+        "*Command Utama:*\n"
+        "• /start — sapaan & tombol Mini App\n"
+        "• /status — status semua kendaraan\n"
+        "• /reminders — daftar pengingat aktif\n"
+        "• /help — tampilkan bantuan ini\n\n"
+        "*Akun:*\n"
+        "• /link `<token>` — link akun Telegram\n"
+        "• /unlink — putuskan tautan\n\n"
+        "*Mini App:*\n"
+        f"Tap menu button *Buka App* di pojok kiri chat, "
+        f"atau tombol biru di pesan /start.\n\n"
+        f"📅 Bot akan mengirim notifikasi pengingat otomatis "
+        f"setiap hari pukul *{DAILY_HOUR_WIB}:00 WIB*."
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+
+# ==================================================================== #
+# /link <token>
+# ==================================================================== #
+async def cmd_link(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """
+    Format: /link <token>
+    Cocokkan token dengan users.telegram_link_token, lalu isi telegram_id.
+    """
+    msg = update.effective_message
+    user = update.effective_user
+    if not msg or not user:
+        return
+
+    args = ctx.args or []
+    token = args[0].strip() if args else ""
+
+    if not token:
+        await msg.reply_text(
+            "⚠️ Format: `/link <token>`\n\n"
+            "Contoh:\n`/link 1726987654.abc123def456`\n\n"
+            "Token bisa didapat dari web app → *Pengaturan* → *Link Telegram*.",
+            parse_mode="Markdown",
+        )
+        return
+
+    # Validasi format
+    if "." not in token:
+        await msg.reply_text(
+            "❌ Token tidak valid. Format: `<unix_ts>.<random>`",
+            parse_mode="Markdown",
+        )
+        return
+
+    # Cek expiry
+    if not is_token_fresh(token):
+        await msg.reply_text(
+            "❌ Token *kadaluarsa* atau tidak valid.\n\n"
+            "Silakan generate ulang dari web app:\n"
+            "*Pengaturan → Link Telegram*",
+            parse_mode="Markdown",
+        )
+        return
+
+    # Cari user dengan token ini
+    target = find_user_by_link_token(token)
+    if not target:
+        await msg.reply_text(
+            "❌ Token tidak ditemukan.\n"
+            "Pastikan Anda copy token terbaru dari web app."
+        )
+        return
+
+    # Cek: apakah telegram_id ini sudah di-link ke user LAIN?
+    already = find_user_by_telegram_id(user.id)
+    if already and already["id"] != target["id"]:
+        await msg.reply_text(
+            f"⚠️ Akun Telegram ini sudah di-link ke akun lain "
+            f"(*{already.get('email', '-')}*).\n\n"
+            f"Kirim /unlink dulu, lalu /link lagi dengan token baru.",
+            parse_mode="Markdown",
+        )
+        return
+
+    # Update user record
+    try:
+        pb.update("users", target["id"], {
+            "telegram_id": str(user.id),
+            "telegram_username": user.username or "",
+            "telegram_linked_at": datetime.now(timezone.utc).isoformat(),
+            "telegram_link_token": "",
+        })
+    except Exception as e:
+        log.exception("Gagal update user saat link")
+        await msg.reply_text(f"❌ Gagal link akun: {e}")
+        return
+
+    log.info("✅ User %s linked to telegram %s", target["id"], user.id)
+
+    kb = webapp_inline_keyboard()
+    await msg.reply_text(
+        f"✅ *Berhasil di-link!*\n\n"
+        f"Akun Telegram Anda sudah tersambung dengan akun "
+        f"`{target.get('email', '-')}`.\n\n"
+        f"Anda akan menerima notifikasi pengingat otomatis.\n\n"
+        f"Tap tombol di bawah untuk buka Mini App 👇",
+        parse_mode="Markdown",
+        reply_markup=kb,
+    )
+
+
+# ==================================================================== #
+# /unlink
+# ==================================================================== #
+async def cmd_unlink(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not user:
+        return
+
+    vt = find_user_by_telegram_id(user.id)
+    if not vt:
+        await update.message.reply_text("⚠️ Akun ini belum ter-link.")
+        return
+
+    try:
+        pb.update("users", vt["id"], {
+            "telegram_id": "",
+            "telegram_username": "",
+            "telegram_linked_at": "",
+            "telegram_link_token": "",
+        })
+    except Exception as e:
+        await update.message.reply_text(f"❌ Gagal unlink: {e}")
+        return
+
+    await update.message.reply_text(
+        "✅ Akun Telegram Anda sudah diputus dari Vehicle Tracker.\n\n"
+        "Untuk link ulang, buka web app → *Pengaturan* → *Link Telegram*.",
+        parse_mode="Markdown",
+    )
+
+
+# ==================================================================== #
+# /status
+# ==================================================================== #
+async def cmd_status(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not user:
+        return
+
+    vt = find_user_by_telegram_id(user.id)
+    if not vt:
+        await update.message.reply_text(
+            "⚠️ Akun belum ter-link.\n\n"
+            "Buka web app → *Pengaturan* → *Link Telegram*.",
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        res = pb.list(
+            "vehicles",
+            filter=f'owner="{vt["id"]}"',
+            sort="-created",
+            perPage=20,
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {e}")
+        return
+
+    items = res.get("items", [])
+    if not items:
+        await update.message.reply_text("🚗 Belum ada kendaraan terdaftar.")
+        return
+
+    lines = [f"🚗 *Status Kendaraan — {vt.get('name', 'Anda')}*\n"]
+
+    for v in items:
+        jenis = v.get("jenis", "lainnya")
+        icon = {"motor": "🏍️", "mobil": "🚗"}.get(jenis, "🚙")
+        odo = int(v.get("odometer_terakhir") or 0)
+
+        lines.append(
+            f"{icon} *{v.get('nama', '-')}*\n"
+            f"   Plat: `{v.get('plat_nomor', '-')}`\n"
+            f"   Odometer: *{odo:,} km*\n".replace(",", ".")
+        )
+
+    kb = webapp_inline_keyboard()
+    await update.message.reply_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=kb,
+    )
+
+
+# ==================================================================== #
+# /reminders
+# ==================================================================== #
+async def cmd_reminders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if not user:
+        return
+
+    vt = find_user_by_telegram_id(user.id)
+    if not vt:
+        await update.message.reply_text(
+            "⚠️ Akun belum ter-link. Buka web app → *Pengaturan* → *Link Telegram*.",
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        res = pb.list(
+            "reminders",
+            filter=f'owner="{vt["id"]}" && status="pending"',
+            sort="created",
+            perPage=50,
+        )
+        vehicles = pb.list(
+            "vehicles",
+            filter=f'owner="{vt["id"]}"',
+            perPage=50,
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {e}")
+        return
+
+    vmap = {v["id"]: v for v in vehicles.get("items", [])}
+    items = res.get("items", [])
+
+    if not items:
+        await update.message.reply_text("🎉 Tidak ada pengingat aktif.")
+        return
+
+    lines = ["🔔 *Daftar Pengingat Aktif*\n"]
+
+    for r in items:
+        v = vmap.get(r.get("vehicle"), {})
+        vname = v.get("nama", "-")
+
+        if r.get("tipe") == "km":
+            target = int(r.get("target_km") or 0)
+            current = int(v.get("odometer_terakhir") or 0)
+            sisa = target - current
+
+            if sisa < 0:
+                status = f"🔴 LEWAT {abs(sisa):,} km".replace(",", ".")
+            elif sisa == 0:
+                status = "🔴 SEKARANG!"
+            elif sisa <= 500:
+                status = f"🟡 {sisa:,} km lagi".replace(",", ".")
+            else:
+                status = f"🔵 {sisa:,} km lagi".replace(",", ".")
+
+            detail = f"target {target:,} km".replace(",", ".")
+        else:
+            d = days_until(r.get("target_date"))
+            if d is None:
+                status = "❔"
+                detail = "-"
+            elif d < 0:
+                status = f"🔴 LEWAT {abs(d)} hari"
+            elif d == 0:
+                status = "🔴 HARI INI!"
+            elif d <= 7:
+                status = f"🟡 {d} hari lagi"
+            else:
+                status = f"🔵 {d} hari lagi"
+            detail = fmt_date(r.get("target_date", ""))
+
+        lines.append(
+            f"{status}\n"
+            f"  *{r.get('judul', '-')}* ({vname})\n"
+            f"  {detail}\n"
+        )
+
+    kb = webapp_inline_keyboard()
+    await update.message.reply_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=kb,
+    )
+
+
+# ==================================================================== #
+# /ping
+# ==================================================================== #
+async def cmd_ping(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    start = time.time()
+    msg = await update.message.reply_text("🏓 Pinging...")
+    latency = (time.time() - start) * 1000
+    await msg.edit_text(
+        f"🏓 Pong!\n\n"
+        f"⏱️ Latency: `{latency:.0f}ms`\n"
+        f"🤖 Bot: @{BOT_USERNAME or 'unknown'}\n"
+        f"🌐 PB: `{PB_URL}`",
+        parse_mode="Markdown",
+    )
+
+
+# ==================================================================== #
+# Daily Reminder Job — Jam 08:00 WIB
+# ==================================================================== #
+async def daily_reminder_job(ctx: ContextTypes.DEFAULT_TYPE):
+    log.info("⏰ Running daily reminder job")
+
+    try:
+        users_res = pb.list("users", filter='telegram_id!=""', perPage=200)
+    except Exception as e:
+        log.error("daily job: gagal list users: %s", e)
+        return
+
+    users = users_res.get("items", [])
+    log.info("Daily job: %d user(s) with Telegram linked", len(users))
+
+    for user in users:
+        try:
+            await _notify_user(user, ctx)
+        except Exception as e:
+            log.exception("Daily job: error untuk user %s", user.get("id"))
+
+
+async def _notify_user(user, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = user["id"]
+    tg_id = user.get("telegram_id")
+    if not tg_id:
+        return
+
+    try:
+        # Ambil vehicles & reminders
+        vehicles = pb.list("vehicles", filter=f'owner="{uid}"', perPage=50)
+        vmap = {v["id"]: v for v in vehicles.get("items", [])}
+
+        reminders = pb.list(
+            "reminders",
+            filter=f'owner="{uid}" && status="pending"',
+            perPage=100,
+        )
+    except Exception as e:
+        log.error("Failed fetch data for %s: %s", uid, e)
+        return
+
+    if not reminders.get("items"):
+        return
+
+    # Kumpulkan yang due/overdue
+    alerts = []
+    for r in reminders["items"]:
+        v = vmap.get(r.get("vehicle"))
+        if not v:
+            continue
+
+        if r.get("tipe") == "km":
+            sisa = int(r.get("target_km") or 0) - int(v.get("odometer_terakhir") or 0)
+            if sisa <= 500:
+                label = "🔴 LEWAT" if sisa < 0 else "🟡 SEGERA"
+                alerts.append(
+                    (r, v, f"{label}: {abs(sisa):,} km".replace(",", "."))
+                )
+        else:
+            d = days_until(r.get("target_date"))
+            if d is not None and d <= 7:
+                label = "🔴 LEWAT" if d < 0 else "🟡 SEGERA"
+                alerts.append(
+                    (r, v, f"{label}: {abs(d)} hari")
+                )
+
+    if not alerts:
+        return
+
+    lines = [f"🔔 *Pengingat Hari Ini — {user.get('name', 'Anda')}*\n"]
+
+    for r, v, status in alerts:
+        lines.append(
+            f"• *{r.get('judul', '-')}* ({v.get('nama', '-')})\n"
+            f"  {status}"
+        )
+
+    lines.append("\nKirim /reminders untuk detail lengkap.")
+
+    try:
+        await ctx.bot.send_message(
+            chat_id=int(tg_id),
+            text="\n".join(lines),
+            parse_mode="Markdown",
+        )
+        log.info("✅ Notif terkirim ke %s", tg_id)
+    except Exception as e:
+        log.warning("Gagal kirim ke %s: %s", tg_id, e)
+
+
+# ==================================================================== #
+# Fallback handler — pesan teks tanpa command
+# ==================================================================== #
+async def handle_unknown(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Reply untuk pesan teks biasa (bukan command)."""
+    if not update.message:
+        return
+
+    kb = webapp_inline_keyboard()
+    await update.message.reply_text(
+        "🤖 Maaf, saya tidak mengerti pesan itu.\n\n"
+        "Coba command:\n"
+        "• /status — status kendaraan\n"
+        "• /reminders — pengingat aktif\n"
+        "• /help — bantuan lengkap\n\n"
+        "Atau tap tombol di bawah untuk buka Mini App 👇",
+        parse_mode="Markdown",
+        reply_markup=kb,
+    )
+
+
+# ==================================================================== #
+# Error handler
+# ==================================================================== #
+async def error_handler(update: object, ctx: ContextTypes.DEFAULT_TYPE):
+    log.error("Exception while handling update:", exc_info=ctx.error)
+
+    # Notifikasi user (kalau bisa)
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text(
+                "⚠️ Terjadi kesalahan internal. Coba lagi nanti atau "
+                "hubungi admin."
+            )
+        except Exception:
+            pass
+
+
+# ==================================================================== #
+# Main
+# ==================================================================== #
+def main():
+    log.info("🚀 Starting bot @%s", BOT_USERNAME or "(unknown)")
+    log.info("🌐 PocketBase: %s", PB_URL)
+    log.info("📱 WebApp URL: %s", WEBAPP_URL or "(not set)")
+
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
+
+    # Command handlers
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", cmd_help))
+    app.add_handler(CommandHandler("link", cmd_link))
+    app.add_handler(CommandHandler("unlink", cmd_unlink))
+    app.add_handler(CommandHandler("status", cmd_status))
+    app.add_handler(CommandHandler("reminders", cmd_reminders))
+    app.add_handler(CommandHandler("ping", cmd_ping))
+
+    # Fallback text handler (paling akhir)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        handle_unknown,
+    ))
+
+    # Error handler
+    app.add_error_handler(error_handler)
+
+    # Daily job — setiap hari jam 08:00 WIB
+    if app.job_queue:
+        app.job_queue.run_daily(
+            daily_reminder_job,
+            time=dt_time(hour=DAILY_HOUR_WIB, minute=0, tzinfo=WIB),
+            name="daily_reminder",
+        )
+        log.info("⏰ Daily job dijadwalkan jam %02d:00 WIB", DAILY_HOUR_WIB)
+    else:
+        log.warning("⚠️  JobQueue tidak tersedia. "
+                    "Install python-telegram-bot[job-queue] untuk daily reminder.")
+
+    log.info("🤖 Bot polling... (Ctrl+C untuk stop)")
+
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+    )
+
+
+# ==================================================================== #
+if __name__ == "__main__":
+    main()

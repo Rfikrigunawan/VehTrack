@@ -1,0 +1,39 @@
+/* =====================================================================
+   16. Utilities
+   =====================================================================
+   Deskripsi:
+     Utility classes + global animation + custom scrollbar.
+
+   Komponen:
+     - .empty-state          : container empty state
+     - @keyframes fadeInUp   : entrance animation
+     - .text-truncate        : ellipsis (dengan min-width: 0)
+     - .scrollbar-none       : hide scrollbar
+     - ::-webkit-scrollbar   : custom scrollbar styling
+   ===================================================================== */
+
+.empty-state { animation: fadeInUp var(--t-slow); }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.text-truncate { min-width: 0; }
+
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ---------- Custom scrollbar ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: var(--r-full);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+  background-clip: padding-box;
+}

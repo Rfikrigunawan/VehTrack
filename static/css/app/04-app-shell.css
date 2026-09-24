@@ -1,0 +1,30 @@
+
+/* =====================================================================
+   04. App Shell
+   =====================================================================
+   Deskripsi:
+     Layout utama aplikasi: flex container yang menampung sidebar
+     dan main content.
+
+   ⚠️  FIX BUG: 
+     - Body TIDAK scroll (overflow: hidden)
+     - .app-content yang scroll (overflow-y: auto)
+     - Ini bikin position: sticky pada sidebar bekerja dengan benar
+   ===================================================================== */
+
+.app-shell {
+  position: relative;
+  display: flex;
+  height: 100vh;
+  height: 100dvh;               /* FIX: pakai height, bukan min-height */
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;             /* FIX: cegah body scroll */
+}
+
+/* Body: kunci tinggi viewport saat app-shell aktif */
+body {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;             /* FIX: cegah body scroll */
+}

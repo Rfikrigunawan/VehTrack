@@ -1,0 +1,525 @@
+/* =====================================================================
+   19. Modern Form (Modal)
+   =====================================================================
+   Deskripsi:
+     Style untuk form modal dengan look & feel modern.
+     Termasuk form sections, custom inputs, checkbox, file dropzone,
+     dan preview file yang ada.
+
+   Sub-modules:
+     1. Modal dialog sizing (mobile bottom sheet)
+     2. Form section (grouping field dengan icon header)
+     3. Form field + label + hint
+     4. Input wrap (icon, addon)
+     5. Form controls modern (input, select, textarea)
+     6. Custom checkbox
+     7. File dropzone
+     8. Existing previews (photo + files)
+     9. Autocalc hint (yellow info box)
+
+   Catatan:
+     - Mobile: modal jadi bottom sheet dengan border-radius top only
+     - Form-section pakai tone-* untuk icon berwarna
+   ===================================================================== */
+
+/* ============================================================
+   Modal dialog sizing
+   ============================================================ */
+#modal .modal-dialog { max-width: 560px; }
+
+@media (max-width: 576px) {
+  #modal .modal-dialog {
+    max-width: 100%;
+    margin: 0;
+    height: 100dvh;
+    display: flex;
+    align-items: flex-end;
+  }
+  #modal .modal-content {
+    border-radius: 20px 20px 0 0;
+    max-height: 92dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #modal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+#modal .modal-content { border-radius: 18px; overflow: hidden; }
+
+#modal .modal-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--c-border);
+  background: transparent;
+}
+
+#modal .modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+#modal .modal-body {
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.5);
+}
+
+@media (min-width: 768px) {
+  #modal .modal-body { padding: 22px 24px; }
+}
+
+#modal .modal-footer {
+  padding: 14px 22px;
+  background: transparent;
+  border-top: 1px solid var(--c-border);
+}
+
+#modal .modal-footer .btn {
+  min-height: 42px;
+  font-weight: 600;
+  padding: 8px 20px;
+}
+
+/* ============================================================
+   Form Section
+   ============================================================ */
+.form-section {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 200ms;
+}
+
+.form-section:last-child { margin-bottom: 0; }
+.form-section:hover { border-color: var(--c-border-hi); }
+
+@media (min-width: 768px) {
+  .form-section { padding: 18px; }
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--c-border);
+}
+
+.form-section-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 14px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.form-section-icon.tone-primary { background: rgba(59, 130, 246, 0.18); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.form-section-icon.tone-success { background: rgba(16, 185, 129, 0.18); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+.form-section-icon.tone-warning { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+.form-section-icon.tone-info    { background: rgba(34, 211, 238, 0.18); color: #22d3ee; border-color: rgba(34, 211, 238, 0.3); }
+.form-section-icon.tone-purple  { background: rgba(168, 85, 247, 0.18); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+
+.form-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ============================================================
+   Form Field
+   ============================================================ */
+.form-field-modern { margin-bottom: 14px; }
+.form-field-modern:last-child { margin-bottom: 0; }
+
+.form-label-modern {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.form-label-modern .req {
+  color: #f87171;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.form-hint-modern {
+  font-size: 11px;
+  color: var(--c-text-soft);
+  margin-top: 5px;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+/* ============================================================
+   Input wrap
+   ============================================================ */
+.input-modern-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.input-modern-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-text-soft);
+  font-size: 15px;
+  pointer-events: none;
+  transition: all 200ms;
+  z-index: 2;
+}
+
+.input-modern-icon-top {
+  top: 14px;
+  transform: none;
+}
+
+.input-modern-wrap:focus-within .input-modern-icon {
+  color: var(--c-primary-hover);
+  filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.6));
+}
+
+.input-modern-addon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text-soft);
+  pointer-events: none;
+  background: rgba(51, 65, 85, 0.7);
+  padding: 2px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--c-border);
+}
+
+/* ============================================================
+   Form Controls Modern
+   ============================================================ */
+.form-control-modern,
+.form-select-modern {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--c-text);
+  background: rgba(15, 23, 42, 0.55);
+  border: 1.5px solid var(--c-border);
+  border-radius: 10px;
+  outline: none;
+  transition: all 200ms;
+  min-height: 44px;
+  line-height: 1.4;
+}
+
+.form-control-modern.has-icon,
+.form-select-modern.has-icon { padding-left: 42px; }
+
+.form-control-modern.has-addon { padding-right: 54px; }
+
+.form-control-modern::placeholder { color: var(--c-text-soft); }
+
+.form-control-modern:hover,
+.form-select-modern:hover { border-color: var(--c-border-hi); }
+
+.form-control-modern:focus,
+.form-select-modern:focus {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 0 20px rgba(59, 130, 246, 0.25);
+}
+
+.form-control-modern:disabled,
+.form-select-modern:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-textarea-modern {
+  min-height: 84px;
+  resize: vertical;
+  padding-top: 12px;
+  line-height: 1.5;
+}
+
+.form-select-modern {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%2394a3b8'%3E%3Cpath d='M4.646 5.646a.5.5 0 0 1 .708 0L8 8.293l2.646-2.647a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.form-select-modern option {
+  background: #0f172a;
+  color: var(--c-text);
+}
+
+/* Hide number spinner */
+.form-control-modern[type="number"]::-webkit-outer-spin-button,
+.form-control-modern[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.form-control-modern[type="number"] { -moz-appearance: textfield; }
+
+/* Autocalc pulse animation */
+.form-control-modern.autocalc-filled {
+  animation: autocalcPulse 400ms ease;
+}
+
+@keyframes autocalcPulse {
+  0%   { background: rgba(59, 130, 246, 0.2); }
+  100% { background: rgba(15, 23, 42, 0.55); }
+}
+
+/* ============================================================
+   Custom Checkbox
+   ============================================================ */
+.form-check-modern {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--c-border);
+  background: rgba(15, 23, 42, 0.5);
+  cursor: pointer;
+  transition: all 200ms;
+  margin-top: 8px;
+  user-select: none;
+}
+
+.form-check-modern:hover {
+  border-color: var(--c-primary-border);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.form-check-modern input { display: none; }
+
+.form-check-modern-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--c-border-hi);
+  flex-shrink: 0;
+  position: relative;
+  transition: all 200ms;
+  margin-top: 1px;
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.form-check-modern-box::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 150ms 100ms;
+}
+
+.form-check-modern input:checked + .form-check-modern-box {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), var(--glow-primary);
+}
+
+.form-check-modern input:checked + .form-check-modern-box::after { opacity: 1; }
+
+.form-check-modern-content { min-width: 0; flex: 1; }
+
+.form-check-modern-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+  line-height: 1.3;
+}
+
+.form-check-modern-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--c-text-soft);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   File Input
+   ============================================================ */
+.file-modern-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--c-border-hi);
+  background: rgba(15, 23, 42, 0.4);
+  cursor: pointer;
+  transition: all 200ms;
+  position: relative;
+}
+
+.file-modern-wrap:hover {
+  border-color: var(--c-primary);
+  background: rgba(59, 130, 246, 0.06);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.file-modern-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.file-modern-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.18));
+  color: var(--c-primary-hover);
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: background 200ms;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.file-modern-text { min-width: 0; flex: 1; }
+
+.file-modern-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.file-modern-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--c-text-soft);
+  margin-top: 2px;
+}
+
+/* ============================================================
+   Existing Previews
+   ============================================================ */
+.existing-photo-wrap {
+  text-align: center;
+  margin-bottom: 14px;
+  position: relative;
+  display: inline-block;
+}
+
+.existing-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid var(--c-border);
+  cursor: pointer;
+  transition: all 200ms;
+  display: block;
+}
+
+.existing-photo:hover {
+  border-color: var(--c-primary-hover);
+  transform: scale(1.03);
+  box-shadow: var(--glow-primary);
+}
+
+.existing-photo-badge {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  white-space: nowrap;
+}
+
+.existing-files-wrap {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--c-border);
+  margin-bottom: 12px;
+}
+
+.existing-files-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+/* ============================================================
+   Autocalc hint
+   ============================================================ */
+.autocalc-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.08));
+  color: #fcd34d;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.autocalc-hint i {
+  font-size: 14px;
+  color: #fbbf24;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px currentColor);
+}

@@ -1,0 +1,81 @@
+/* =====================================================================
+   15. Badges
+   =====================================================================
+   Deskripsi:
+     Badge/status pills dengan varian warna soft.
+     Override Bootstrap badge untuk konsistensi dark theme.
+
+   Komponen:
+     - .badge-status         : badge dengan warna soft (10 varian)
+     - .bg-success-soft      : hijau soft
+     - .bg-warning-soft      : kuning soft
+     - .bg-danger-soft       : merah soft
+     - .bg-info-soft         : cyan soft
+     - .bg-neutral-soft      : abu soft
+     - .badge.text-bg-light  : override Bootstrap
+     - .badge.text-bg-secondary
+     - .badge.text-bg-success
+     - .badge.text-bg-danger
+   ===================================================================== */
+
+.badge-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--r-xs);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+
+/* ---------- Soft variants ---------- */
+.badge-status.bg-success-soft {
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.badge-status.bg-warning-soft {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.badge-status.bg-danger-soft {
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+.badge-status.bg-info-soft {
+  background: rgba(34, 211, 238, 0.15);
+  color: #67e8f9;
+  border-color: rgba(34, 211, 238, 0.25);
+}
+.badge-status.bg-neutral-soft {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--c-text-muted);
+  border-color: rgba(100, 116, 139, 0.25);
+}
+
+/* ---------- Bootstrap badge overrides ---------- */
+.badge.text-bg-light {
+  background: rgba(51, 65, 85, 0.5) !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border);
+}
+
+.badge.text-bg-secondary {
+  background: rgba(100, 116, 139, 0.3) !important;
+  border: 1px solid var(--c-border);
+}
+
+.badge.text-bg-success {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge.text-bg-danger {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #fca5a5 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}

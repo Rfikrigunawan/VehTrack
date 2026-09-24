@@ -1,4 +1,12 @@
+# 📖 `README.md` — Vehicle Tracker v1.1 (Full Code)
 
+Dokumentasi lengkap dengan semua fitur baru: **registrasi via bot**, **edit profil**, **ganti password**, **hapus akun**, dan perbaikan keamanan.
+
+---
+
+## 📄 Full Code — `README.md`
+
+```markdown
 # 🚗 Vehicle Tracker
 
 > **Smart tracking system** untuk mengelola kendaraan pribadi: servis, BBM, dokumen, pengingat, dan laporan — dalam satu aplikasi terintegrasi.

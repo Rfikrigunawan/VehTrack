@@ -1,0 +1,57 @@
+/* =====================================================================
+   23. Accessibility & Safe Area
+   =====================================================================
+   Deskripsi:
+     - Safe area insets (untuk iPhone notch & Android cutout)
+     - Focus-visible outline
+     - Prefers-reduced-motion support
+
+   Catatan:
+     - Safe area pakai env() + max() untuk fallback
+     - :focus-visible (bukan :focus) untuk hindari outline saat klik mouse
+   ===================================================================== */
+
+/* ============================================================
+   Safe Area
+   ============================================================ */
+@supports (padding: max(0px)) {
+  .app-header {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .toast-container {
+    padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  }
+  .sidebar-user {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================================
+   Focus visible
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--c-primary-hover);
+  outline-offset: 2px;
+}
+
+/* Hindari outline dobel saat klik mouse */
+button:focus:not(:focus-visible),
+.sidebar-item:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .bg-speedometer {
+    animation: none !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

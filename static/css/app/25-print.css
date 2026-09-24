@@ -1,0 +1,33 @@
+/* =====================================================================
+   25. Print
+   =====================================================================
+   Deskripsi:
+     Style untuk mode print. Sembunyikan elemen non-esensial dan
+     optimasi untuk kertas putih.
+
+   Yang di-hide:
+     - Background decor
+     - Sidebar
+     - Header
+     - Toast
+     - Modal & buttons
+     - Sidebar overlay
+   ===================================================================== */
+
+@media print {
+  .bg-decor,
+  .app-sidebar,
+  .app-header,
+  .toast-container,
+  .modal,
+  .btn,
+  .btn-icon,
+  .sidebar-overlay {
+    display: none !important;
+  }
+  body, .app-content {
+    background: #fff;
+    color: #000;
+    padding: 0;
+  }
+}

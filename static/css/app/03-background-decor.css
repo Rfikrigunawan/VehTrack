@@ -1,0 +1,123 @@
+/* =====================================================================
+   03. Background Decor (HUD)
+   =====================================================================
+   Deskripsi:
+     Dekorasi background bergaya HUD / automotive.
+     Semua elemen position: fixed, pointer-events: none — hanya visual.
+
+   Komponen:
+     - .bg-decor       : container utama dengan gradient (light + dark)
+     - .bg-grid        : garis-garis grid HUD
+     - .bg-road        : perspektif jalan neon (conic-gradient)
+     - .bg-speedometer : cincin speedometer neon (rotating)
+     - .bg-beam        : cahaya headlight beam
+     - @keyframes speedoRotate : animasi rotate cincin
+
+   Catatan:
+     - Di mobile, opacity elemen dikurangi untuk performa
+   ===================================================================== */
+
+.bg-decor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 60% 40% at 0% 0%, rgba(251, 191, 36, 0.06), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 0%, rgba(59, 130, 246, 0.10), transparent 60%),
+    radial-gradient(ellipse 80% 50% at 50% 110%, rgba(139, 92, 246, 0.08), transparent 65%),
+    linear-gradient(180deg, #020617 0%, #0a0f1e 55%, #0f172a 100%);
+}
+
+/* ---------- Grid lines ---------- */
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(96, 165, 250, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 165, 250, 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 25%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, #000 25%, transparent 90%);
+  opacity: 0.7;
+}
+
+/* ---------- Road perspective ---------- */
+.bg-road {
+  position: absolute;
+  right: -20%;
+  bottom: 0;
+  width: 80%;
+  height: 60vh;
+  background: conic-gradient(
+    at 50% 100%,
+    transparent 0deg 28deg,
+    rgba(96, 165, 250, 0.22) 28deg 28.5deg,
+    transparent 28.5deg 331.5deg,
+    rgba(96, 165, 250, 0.22) 331.5deg 332deg,
+    transparent 332deg 360deg
+  );
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.4) 40%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.4) 40%, transparent 80%);
+  filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.35));
+  opacity: 0.6;
+}
+
+/* ---------- Speedometer ring ---------- */
+.bg-speedometer {
+  position: absolute;
+  top: -350px;
+  right: -350px;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  opacity: 0.28;
+  background: repeating-conic-gradient(
+    from 180deg,
+    rgba(96, 165, 250, 0.9) 0deg 0.6deg,
+    transparent 0.6deg 6deg
+  );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0%,
+    transparent 65%,
+    #000 66%,
+    #000 72%,
+    transparent 73%
+  );
+  -webkit-mask-image: radial-gradient(
+    circle,
+    transparent 0%,
+    transparent 65%,
+    #000 66%,
+    #000 72%,
+    transparent 73%
+  );
+  animation: speedoRotate 120s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.35));
+}
+
+@keyframes speedoRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---------- Headlight beam ---------- */
+.bg-beam {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 80%;
+  height: 90%;
+  background:
+    radial-gradient(ellipse 60% 50% at 0% 0%, rgba(251, 191, 36, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 100% 100%, rgba(59, 130, 246, 0.08) 0%, transparent 55%);
+}
+
+/* ---------- Mobile: reduce opacity for perf ---------- */
+@media (max-width: 768px) {
+  .bg-speedometer { opacity: 0.18; }
+  .bg-road { opacity: 0.4; }
+  .bg-grid { opacity: 0.5; background-size: 40px 40px; }
+}
