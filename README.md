@@ -111,11 +111,11 @@
 2. **Telegram Bot** — Chat commands untuk cek status cepat
 3. **Telegram Mini App** — Dashboard embedded, auto-login via initData
 
----
+
 
 ## 🏗️ Arsitektur
 
-```
+
 ┌─────────────────────────────────────────────────────────────┐
 │                     USER INTERFACES                         │
 │                                                             │
@@ -167,7 +167,7 @@
 │  • Menu button setup (Mini App launcher)                    │
 │  • Auto-delete password message (60 detik)                  │
 └──────────────────────────────────────────────────────────────┘
-```
+
 
 ### Technology Stack
 
@@ -193,11 +193,11 @@
 - **Mobile-First** — Responsive breakpoints
 - **Accessibility** — ARIA labels, keyboard navigation, reduced-motion
 
----
+
 
 ## 📁 Struktur Project
 
-```
+
 vtrack/
 │
 ├── 📄 app.py                       # Flask backend (routes, auth, API, business logic)
@@ -302,11 +302,10 @@ vtrack/
             │   └── page.js         # Full-page mode
             │
             └── main.js             # LAYER 7: Entry point
-```
+
 
 **Total:** ~60 file, ~12.000 baris kode.
 
----
 
 ## 🚀 Instalasi
 
