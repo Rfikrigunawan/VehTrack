@@ -1,0 +1,60 @@
+/* =====================================================================
+   Vehicle Tracker — App Styles (Entry Point)
+   =====================================================================
+   File ini meng-import semua modul CSS secara berurutan.
+
+   ⚠️  URUTAN PENTING!
+       Cascade CSS menentukan siapa yang menang saat specificity sama.
+       Jangan ubah urutan tanpa alasan kuat.
+
+   Urutan:
+     Foundation  → Tokens, Reset
+     Layout      → Shell, Sidebar, Header, Content
+     Components  → Buttons, Forms, Cards, Tables, Modal, dll
+     Views       → Dashboard, Detail, Form
+     Conditions  → Responsive, Accessibility, Light Mode, Print
+   ===================================================================== */
+
+/* ---------- Foundation ---------- */
+@import url('01-design-tokens.css');
+@import url('02-base-reset.css');
+
+/* ---------- Layout ---------- */
+@import url('03-background-decor.css');
+@import url('04-app-shell.css');
+@import url('05-sidebar.css');
+@import url('06-header.css');
+@import url('07-content-area.css');
+
+/* ---------- Components ---------- */
+@import url('08-buttons.css');
+@import url('09-forms-base.css');
+@import url('10-cards.css');
+@import url('11-tables.css');
+@import url('12-modal.css');
+@import url('13-toast.css');
+@import url('14-file-lightbox.css');
+@import url('15-badges.css');
+@import url('16-utilities.css');
+
+/* ---------- Views ---------- */
+@import url('17-dashboard.css');
+@import url('18-detail-page.css');
+@import url('19-modern-form.css');
+@import url('20-form-page.css');
+@import url('21-flatpickr.css');
+@import url('27-reports.css');        /* ⬅️ BARU */
+@import url('28-settings.css');    /* ⬅️ BARU */
+
+
+
+/* ---------- Conditions (HARUS di akhir) ---------- */
+@import url('22-responsive.css');
+@import url('23-accessibility.css');
+@import url('24-light-mode.css');
+@import url('25-print.css');
+@import url('26-fuel-summary.css');
+
+/* ---------- Alias FontAwesome (WAJIB di akhir!) ---------- */
+
+@import url('fontawesome-alias.css');

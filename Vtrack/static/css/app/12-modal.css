@@ -1,0 +1,74 @@
+/* =====================================================================
+   12. Modal (Glass)
+   =====================================================================
+   Deskripsi:
+     Modal Bootstrap dengan efek glass morphism.
+     Termasuk animasi masuk (slide up + scale).
+
+   Komponen:
+     - .modal-content  : container glass
+     - .modal-header   : header dengan border bottom
+     - .modal-body     : konten
+     - .modal-footer   : footer dengan actions
+     - .btn-close      : tombol close (invert untuk dark)
+
+   Animasi:
+     - modalIn : slide up + scale (220ms)
+     - fadeIn  : simple fade (untuk backdrop)
+   ===================================================================== */
+
+.modal-content {
+  background: var(--glass-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-xl);
+  overflow: hidden;
+  color: var(--c-text);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--c-border);
+  padding: 18px 22px;
+  background: transparent;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
+}
+
+.modal-body { padding: 22px; }
+
+.modal-footer {
+  border-top: 1px solid var(--c-border);
+  padding: 14px 22px;
+  background: rgba(15, 23, 42, 0.3);
+  gap: 8px;
+}
+
+/* ---------- Close button ---------- */
+.btn-close {
+  filter: invert(1) brightness(2);
+  opacity: 0.5;
+}
+.btn-close:hover { opacity: 0.9; }
+
+/* ---------- Backdrop blur ---------- */
+#modal { backdrop-filter: blur(4px); }
+
+/* ---------- Entrance animation ---------- */
+#modal.modal.show .modal-dialog { animation: modalIn 220ms ease; }
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

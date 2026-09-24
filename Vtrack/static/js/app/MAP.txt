@@ -1,0 +1,33 @@
+
+├── app/
+│   ├── core/ (done)
+│   │   ├── state.js         # State global + konstanta
+│   │   ├── api.js           # Fetch wrapper + toast
+│   │   └── router.js        # URL routing (SPA)
+│   ├── utils/ (done)
+│   │   ├── formatters.js    # fmtRp, fmtNum, fmtDate
+│   │   ├── timezone.js      # WIB helpers (toPBDate, fromPBDate, dll)
+│   │   ├── dom.js           # $, $$, escapeHtml, escapeStr
+│   │   └── icons.js         # ✨ Icon registry
+│   ├── layout/ (done)
+│   │   ├── sidebar.js       # Sidebar navigation + active state
+│   │   ├── header.js        # Header interactions (refresh, theme, filter)
+│   │   └── theme.js         # Dark/Light toggle
+│   ├── views/ (done)
+│   │   ├── dashboard.js     # Dashboard + Detail page
+│   │   ├── vehicles.js      # List kendaraan
+│   │   ├── services.js      # List servis
+│   │   ├── fuels.js         # List BBM + summary
+│   │   ├── documents.js     # List dokumen
+│   │   ├── reminders.js     # List pengingat
+│   │   └── settings.js      # Settings + Telegram linking
+│   ├── form/(done)
+│   │   ├── builders.js      # field(), select(), fileField(), dll
+│   │   ├── hooks.js         # Auto-calc, datepicker, vehicle auto-fill
+│   │   ├── definitions.js   # FORMS.vehicle, FORMS.service, dll
+│   │   ├── modal.js         # Modal mode
+│   │   └── page.js          # Page mode
+│   ├── shared/ (done)
+│   │   ├── files.js         # File helpers + lightbox
+│   │   └── renderer.js      # render() dispatcher
+│   └── main.js              # 🚀 Entry point (bootstrap)

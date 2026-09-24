@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1" />
+<meta name="theme-color" content="#020617" />
+<title>Vehicle Tracker — Mini App</title>
+
+<link rel="icon" href="{{ url_for('static', filename='icon.svg') }}">
+
+<!-- Bootstrap 5.3 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Font Awesome 6 (Solid + Regular + Brands) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- App styles (shared) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app/index.css') }}">
+
+<!-- Mini App specific styles (overrides) -->
+<link rel="stylesheet" href="{{ url_for('static', filename='teleapp.style.css') }}">
+
+<!-- ⚡ SET FLAG SEBELUM SEMUA SCRIPT DILOAD ⚡ -->
+<script>
+  window.VT_MINI_APP_MODE = true;
+</script>
+</head>
+<body class="is-mini-app">
+
+<!-- ==================== LOADING SCREEN ==================== -->
+<div id="tg-loading" class="tg-loading" role="status" aria-live="polite">
+  <div class="tg-loading-spinner" aria-hidden="true"></div>
+  <div class="tg-loading-text">Menghubungkan ke Telegram…</div>
+</div>
+
+<!-- ==================== ERROR SCREEN ==================== -->
+<div id="tg-error" class="tg-error hidden" role="alert">
+  <!-- Decorative background glows -->
+  <div class="tg-error-bg" aria-hidden="true">
+    <span class="tg-error-blob tg-error-blob-1"></span>
+    <span class="tg-error-blob tg-error-blob-2"></span>
+    <span class="tg-error-blob tg-error-blob-3"></span>
+  </div>
+
+  <div class="tg-error-inner">
+    <!-- Icon dengan ripple -->
+    <div class="tg-error-icon-wrap" aria-hidden="true">
+      <div class="tg-error-icon-ripple"></div>
+      <div class="tg-error-icon-ripple tg-error-icon-ripple-2"></div>
+      <div class="tg-error-icon">📱</div>
+    </div>
+
+    <h2 class="tg-error-title" id="tg-error-title">Tidak dapat terhubung</h2>
+    <p class="tg-error-text" id="tg-error-text"></p>
+
+    <div class="tg-error-actions">
+      <button id="tg-error-retry" class="tg-error-btn tg-error-btn-primary" type="button">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        <span>Coba Lagi</span>
+      </button>
+      <button id="tg-error-close" class="tg-error-btn tg-error-btn-ghost" type="button">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        <span>Tutup</span>
+      </button>
+    </div>
+
+    <div class="tg-error-hint">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <span>Butuh bantuan? Hubungi admin bot</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="tg-app" class="tg-app hidden">
+
+  <!-- Background Decor -->
+  <div class="bg-decor" aria-hidden="true">
+    <div class="bg-grid"></div>
+    <div class="bg-road"></div>
+    <div class="bg-speedometer"></div>
+    <div class="bg-beam"></div>
+  </div>
+
+  <div id="sidebar-overlay" class="sidebar-overlay" aria-hidden="true"></div>
+
+  <div class="app-shell">
+
+    <!-- ==================== SIDEBAR ==================== -->
+    <aside id="sidebar" class="app-sidebar" aria-label="Menu navigasi">
+
+      <!-- Brand -->
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-logo" aria-hidden="true">
+          <i class="fa-solid fa-car-side"></i>
+          <span class="sidebar-brand-logo-glow"></span>
+        </div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-name">
+            Vehicle<span class="sidebar-brand-name-accent">Tracker</span>
+          </div>
+          <div class="sidebar-brand-tag">
+            <span class="sidebar-brand-dot"></span>
+            Mini App
+          </div>
+        </div>
+        <button id="tg-close-sidebar" class="sidebar-close-btn" type="button"
+                title="Tutup" aria-label="Tutup menu">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- Nav -->
+      <nav class="sidebar-nav" aria-label="Menu utama">
+        <div class="sidebar-section">MENU</div>
+
+        <a data-nav="dashboard" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Dashboard</span>
+        </a>
+
+        <a data-nav="vehicles" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-car-side" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Kendaraan</span>
+        </a>
+
+        <a data-nav="service_records" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Servis</span>
+        </a>
+
+        <a data-nav="fuel_logs" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-gas-pump" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">BBM</span>
+        </a>
+
+        <a data-nav="documents" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Dokumen</span>
+        </a>
+
+        <a data-nav="reminders" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Pengingat</span>
+        </a>
+
+        <a data-nav="reports" class="sidebar-item">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span class="sidebar-item-text">Laporan</span>
+        </a>
+        <div class="sidebar-section">AKUN</div>
+
+        <a data-nav="settings" class="sidebar-item" role="button" tabindex="0">
+          <span class="sidebar-item-icon"><i class="fa-solid fa-gear" aria-hidden="true"></i></span>
+          <span class="sidebar-item-text">Pengaturan</span>
+        </a>
+      </nav>
+
+      <!-- User Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar" id="tg-user-avatar" aria-hidden="true">?</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="tg-user-name">User</div>
+            <div class="sidebar-user-email" id="tg-user-email">-</div>
+          </div>
+          <button id="btn-logout-tg" class="sidebar-user-action"
+                  type="button" title="Tutup" aria-label="Tutup Mini App">
+            <i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==================== MAIN ==================== -->
+    <main class="app-main">
+
+      <!-- Header -->
+      <header class="app-header">
+        <div class="app-header-left">
+          <button id="btn-hamburger" class="btn-icon-round d-lg-none"
+                  type="button" aria-label="Buka menu">
+            <i class="fa-solid fa-bars" aria-hidden="true"></i>
+          </button>
+          <div class="app-header-titles">
+            <h1 id="page-title" class="app-header-title">Dashboard</h1>
+            <div class="app-header-subtitle" id="page-subtitle">Ringkasan kendaraan Anda</div>
+          </div>
+        </div>
+
+        <div class="app-header-right">
+          <div class="header-filter">
+            <i class="fa-solid fa-filter header-filter-icon" aria-hidden="true"></i>
+            <select id="vehicle-select" class="header-filter-select" aria-label="Filter kendaraan">
+              <option value="">Semua</option>
+            </select>
+          </div>
+
+          <button id="btn-theme" class="btn-icon-round" type="button"
+                  title="Ganti tema" aria-label="Ganti tema">
+            <i class="fa-solid fa-moon" aria-hidden="true"></i>
+          </button>
+
+          <button id="btn-refresh" class="btn-icon-round" type="button"
+                  title="Refresh" aria-label="Muat ulang data">
+            <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <section id="content" class="app-content"></section>
+    </main>
+  </div>
+</div>
+
+<!-- ==================== MODAL ==================== -->
+<div class="modal fade" id="modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Modal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <form id="modal-form" autocomplete="off">
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+          <button id="modal-submit" type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container">
+  <div id="toast" class="toast align-items-center text-white border-0"
+       role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto"
+              data-bs-dismiss="toast" aria-label="Tutup"></button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SCRIPTS ==================== -->
+
+<!-- Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Vendor -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" defer></script>
+
+<!-- ============ App Modules (order matters!) ============ -->
+
+<!-- 1. Utils -->
+<script src="{{ url_for('static', filename='js/app/utils/icons.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/utils/dom.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/utils/timezone.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/utils/formatters.js') }}" defer></script>
+
+<!-- 2. Core -->
+<script src="{{ url_for('static', filename='js/app/core/state.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/core/api.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/core/router.js') }}" defer></script>
+
+<!-- 3. Shared -->
+<script src="{{ url_for('static', filename='js/app/shared/files.js') }}" defer></script>
+
+<!-- 4. Layout -->
+<script src="{{ url_for('static', filename='js/app/layout/theme.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/layout/sidebar.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/layout/header.js') }}" defer></script>
+
+<!-- 5. Views -->
+<script src="{{ url_for('static', filename='js/app/views/dashboard.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/vehicles.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/services.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/fuels.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/documents.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/reminders.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/settings.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/views/reports.js') }}" defer></script>  <!-- ⬅️ BARU -->
+
+
+<!-- 6. Form -->
+<script src="{{ url_for('static', filename='js/app/form/builders.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/form/hooks.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/form/definitions.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/form/modal.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/form/page.js') }}" defer></script>
+
+<!-- 7. Renderer + Main -->
+<script src="{{ url_for('static', filename='js/app/shared/renderer.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/app/main.js') }}" defer></script>
+
+<!-- 8. Mini App bootstrap — paling akhir -->
+<script src="{{ url_for('static', filename='js/teleapp.script.js') }}" defer></script>
+
+</body>
+</html>

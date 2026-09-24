@@ -1,0 +1,137 @@
+/* =====================================================================
+   26. Fuel Summary Cards (BBM Page)
+   =====================================================================
+   Deskripsi:
+     Kartu ringkasan di halaman Catatan BBM: total biaya, total liter,
+     konsumsi rata-rata, dan biaya per KM.
+
+   Komponen:
+     - .fuel-summary       : grid container
+     - .fuel-summary-card  : individual card dengan tone-*
+     - .fuel-summary-icon  : icon box
+     - .fuel-summary-value : value besar
+     - .fuel-summary-label : label uppercase
+     - .fuel-summary-sub   : subtitle info
+   ===================================================================== */
+
+.fuel-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.fuel-summary-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--c-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+  transition: all var(--t-base);
+  overflow: hidden;
+}
+
+.fuel-summary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.85;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.fuel-summary-card:hover {
+  transform: translateY(-2px);
+  border-color: currentColor;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* Tones */
+.fuel-summary-card.tone-money    { color: #34d399; }
+.fuel-summary-card.tone-liter    { color: #60a5fa; }
+.fuel-summary-card.tone-konsumsi { color: #fbbf24; }
+.fuel-summary-card.tone-cost     { color: #c084fc; }
+
+.fuel-summary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: transform var(--t-base);
+}
+
+.fuel-summary-card:hover .fuel-summary-icon { transform: scale(1.05); }
+
+.fuel-summary-card.tone-money .fuel-summary-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+}
+.fuel-summary-card.tone-liter .fuel-summary-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+}
+.fuel-summary-card.tone-konsumsi .fuel-summary-icon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+}
+.fuel-summary-card.tone-cost .fuel-summary-icon {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+}
+
+.fuel-summary-body { flex: 1; min-width: 0; }
+
+.fuel-summary-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-soft);
+  margin-bottom: 4px;
+}
+
+.fuel-summary-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-text);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+.fuel-summary-sub {
+  font-size: 11px;
+  color: var(--c-text-soft);
+  margin-top: 4px;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .fuel-summary { grid-template-columns: 1fr; gap: 10px; }
+  .fuel-summary-card { padding: 14px; }
+  .fuel-summary-value { font-size: 18px; }
+  .fuel-summary-icon { width: 40px; height: 40px; font-size: 18px; }
+}
+
+@media (min-width: 641px) and (max-width: 991px) {
+  .fuel-summary { grid-template-columns: repeat(2, 1fr); }
+}
